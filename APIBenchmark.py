@@ -81,6 +81,9 @@ if benchmark_mode == 'count':
     progress=0
     total_time=0
     progress_increment = (100 / int(benchmark_hosts))
+    obj_per_sec_count=0
+    obj_per_sec_timer=0
+    obj_per_sec_print=0
     stdscr = curses.initscr()
     while int(count) < int(benchmark_hosts):
 
@@ -90,18 +93,29 @@ if benchmark_mode == 'count':
             d=d+1
             host_ip = str(a)+"."+str(b)+"."+str(c)+"."+str(d)
 
+            #Start Timers
             create_start = time.time() #Timer
+
+            #Create Object
             AddHost(host_name,host_ip)
+
+            #End Timers
             create_finish = time.time() #Timer finish
+
+            #Calculate Time
             elapsed = create_finish - create_start
-            #print 'elapsed time:'+str(elapsed)
-            #print 'totqal time:'+str(total_time)
             total_time = total_time + elapsed
 
-            #progress=progress+progress_increment
+            obj_per_sec_timer = obj_per_sec_timer + elapsed
+            if obj_per_sec_timer >= 1:
+                #Log and Reset Time Count
+                obj_per_sec_print = obj_per_sec_count
+                obj_per_sec_timer=0
+                obj_per_sec_count=0
+
             running_avg = count/float(total_time)
             count=count+1
-            #print count
+            obj_per_sec_count=obj_per_sec_count+1
 
             progress = float(count) / float(benchmark_hosts) * 100
 
@@ -110,11 +124,9 @@ if benchmark_mode == 'count':
             stdscr.addstr(1, 0, "    Objects Created: "+str(count))
             stdscr.addstr(2, 0, "    Progress: %.2f" % round(progress,2)+"%")
             stdscr.addstr(3, 0, "    Avg Time Per Object: %.2f" % round(elapsed,2)+" Seconds")
-            stdscr.addstr(3, 0, "    Objects Per Second: %.2f" % round(elapsed,2)+" Seconds")
-            stdscr.addstr(4, 0, "    Elapsed Time: %.0f" % round(total_time)+" Seconds")
+            stdscr.addstr(4, 0, "    Objects Per Second: "+str(obj_per_sec_print))
+            stdscr.addstr(5, 0, "    Elapsed Time: %.0f" % round(total_time)+" Seconds")
             stdscr.refresh()
-
-
 
         elif c < 255:
             c=c+1
@@ -130,7 +142,6 @@ if benchmark_mode == 'count':
             b=1 #reset b
             c=1 #reset c
             d=1 #reset d
-
 
 
 if benchmark_mode == 'time':
@@ -207,11 +218,13 @@ if benchmark_mode == 'delete':
 
 
     os.remove(".benchmark_delete")
-
-avg_time=int(round(total_time, 2)) / int(benchmark_hosts)
 curses.endwin()
+
+avg_time=float(total_time) / float(benchmark_hosts)
+
 print '[+] Total Time: '+str(round(total_time))+' seconds'
-print '[+] Average Delete Time Per Host Object: '+str(avg_time)
+print '[+] Objects Per Second: ~'+str(obj_per_sec_print)
+print '[+] Average Time Per Host Object: '+str(avg_time)
 
 
 #Publish Session
@@ -239,7 +252,6 @@ while True:
 publish_finish = time.time()
 publish_elapsed = publish_finish - publish_start
 print '[+] Publishing Time: '+str(publish_elapsed)
-
 
 
 #Logout
